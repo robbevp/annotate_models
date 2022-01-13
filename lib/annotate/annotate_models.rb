@@ -229,6 +229,8 @@ module AnnotateModels
     def get_col_type(col)
       if (col.respond_to?(:bigint?) && col.bigint?) || /\Abigint\b/ =~ col.sql_type
         'bigint'
+      elsif col.respond_to?(:virtual?) && col.virtual?
+        'virtual'
       else
         (col.type || col.sql_type).to_s
       end
@@ -867,12 +869,15 @@ module AnnotateModels
     def get_attributes(column, column_type, klass, options)
       attrs = []
       attrs << "default(#{schema_default(klass, column)})" unless column.default.nil? || hide_default?(column_type, options)
+      attrs << column.default_function if column.respond_to?(:virtual?) && column.virtual?
       attrs << 'unsigned' if column.respond_to?(:unsigned?) && column.unsigned?
       attrs << 'not null' unless column.null
       attrs << 'primary key' if klass.primary_key && (klass.primary_key.is_a?(Array) ? klass.primary_key.collect(&:to_sym).include?(column.name.to_sym) : column.name.to_sym == klass.primary_key.to_sym)
 
       if column_type == 'decimal'
         column_type << "(#{column.precision}, #{column.scale})"
+      elsif column_type == 'virtual'
+        column_type << "(#{(column.type || column.sql_type).to_s})"
       elsif !%w[spatial geometry geography].include?(column_type)
         if column.limit && !options[:format_yard]
           if column.limit.is_a? Array
