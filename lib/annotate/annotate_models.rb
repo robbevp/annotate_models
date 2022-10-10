@@ -867,7 +867,7 @@ module AnnotateModels
     def get_attributes(column, column_type, klass, options)
       attrs = []
       attrs << "default(#{schema_default(klass, column)})" unless column.default.nil? || hide_default?(column_type, options)
-      attrs << column.default_function if column.respond_to?(:virtual?) && column.virtual?
+      attrs << column.default_function.gsub(/\s+/, ' ').strip if column.respond_to?(:virtual?) && column.virtual?
       attrs << 'unsigned' if column.respond_to?(:unsigned?) && column.unsigned?
       attrs << 'not null' unless column.null
       attrs << 'primary key' if klass.primary_key && (klass.primary_key.is_a?(Array) ? klass.primary_key.collect(&:to_sym).include?(column.name.to_sym) : column.name.to_sym == klass.primary_key.to_sym)
